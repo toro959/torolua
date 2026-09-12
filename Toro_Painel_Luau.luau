@@ -1,4 +1,3 @@
-from pathlib import Path
 
 code = r'''--// TORO PANEL - versão corrigida
 --// Use como LocalScript em StarterPlayer > StarterPlayerScripts
