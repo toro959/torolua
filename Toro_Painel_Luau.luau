@@ -346,8 +346,8 @@ local function Slider(parent, title, minValue, maxValue, initial, decimals, call
 	valueLabel.TextXAlignment = Enum.TextXAlignment.Right
 
 	local track = New("Frame", {
-		Size = UDim2.new(1, -28, 0, 8),
-		Position = UDim2.fromOffset(14, 43),
+		Size = UDim2.new(1, -28, 0, 10),
+		Position = UDim2.fromOffset(14, 42),
 		BackgroundColor3 = Color3.fromRGB(42, 42, 50),
 		BorderSizePixel = 0,
 		Active = true,
@@ -363,17 +363,19 @@ local function Slider(parent, title, minValue, maxValue, initial, decimals, call
 	Corner(fill, 8)
 
 	local knob = New("Frame", {
-		Size = UDim2.fromOffset(14, 14),
+		Size = UDim2.fromOffset(16, 16),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0, 0, 0.5, 0),
 		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 		BorderSizePixel = 0,
+		ZIndex = 5,
 	}, track)
 	Corner(knob, 20)
 
+	-- Área de clique bem maior (mais fácil de arrastar)
 	local hit = New("TextButton", {
-		Size = UDim2.new(1, 18, 0, 30),
-		Position = UDim2.fromOffset(-9, 32),
+		Size = UDim2.new(1, 24, 0, 40),
+		Position = UDim2.fromOffset(-12, 28),
 		BackgroundTransparency = 1,
 		AutoButtonColor = false,
 		Text = "",
@@ -406,31 +408,43 @@ local function Slider(parent, title, minValue, maxValue, initial, decimals, call
 		end
 	end
 
-	local function setFromX(x)
+	local function setFromMouse()
+		local mouseX = UIS:GetMouseLocation().X
 		local left = track.AbsolutePosition.X
 		local width = math.max(track.AbsoluteSize.X, 1)
-		local alpha = math.clamp((x - left) / width, 0, 1)
+		local alpha = math.clamp((mouseX - left) / width, 0, 1)
 		applyValue(minValue + (maxValue - minValue) * alpha)
 	end
 
-	hit.MouseButton1Down:Connect(function(x)
+	hit.MouseButton1Down:Connect(function()
 		dragging = true
-		setFromX(x)
+		setFromMouse()
 	end)
 
-	UIS.InputChanged:Connect(function(input)
-		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-			setFromX(input.Position.X)
+	-- Atualiza todo frame enquanto arrasta (bem mais responsivo)
+	local dragConn
+	dragConn = RunService.RenderStepped:Connect(function()
+		if dragging then
+			setFromMouse()
 		end
 	end)
 
 	UIS.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		if input.UserInputType == Enum.UserInputType.MouseButton1
+			or input.UserInputType == Enum.UserInputType.Touch then
 			dragging = false
 		end
 	end)
 
-	-- valor inicial
+	-- também funciona com toque / input geral
+	hit.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1
+			or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			setFromMouse()
+		end
+	end)
+
 	task.defer(function()
 		applyValue(initial)
 	end)
@@ -871,13 +885,14 @@ end
 local function GetOrCreateSkeletonLine(data, index)
 	local line = data.skeletonLines[index]
 	if not line or not line.Parent then
+		-- parent no ESPFolder (tela inteira) para não ficar minúsculo dentro do box
 		line = New("Frame", {
 			BackgroundColor3 = Theme.Accent,
 			BorderSizePixel = 0,
 			AnchorPoint = Vector2.new(0, 0.5),
 			Visible = false,
 			ZIndex = 48,
-		}, data.root)
+		}, ESPFolder)
 		data.skeletonLines[index] = line
 	end
 	return line
@@ -969,7 +984,7 @@ local function UpdateESP()
 			data.tracer.Visible = false
 		end
 
-		-- SKELETON
+		-- SKELETON (espaço absoluto da tela + linhas mais grossas)
 		if Config.ESPSkeleton then
 			local lineIndex = 0
 			for _, pair in ipairs(SKELETON_CONNECTIONS) do
@@ -983,10 +998,12 @@ local function UpdateESP()
 						local line = GetOrCreateSkeletonLine(data, lineIndex)
 						local delta = pos2 - pos1
 						local length = delta.Magnitude
-						if length > 1 then
-							line.Position = UDim2.fromOffset(pos1.X - leftX, pos1.Y - topY)
-							line.Size = UDim2.fromOffset(length, 1.5)
+						if length > 2 then
+							-- posição absoluta na tela (não relativa ao box)
+							line.Position = UDim2.fromOffset(pos1.X, pos1.Y)
+							line.Size = UDim2.fromOffset(length, 2.5) -- mais grosso e visível
 							line.Rotation = math.deg(math.atan2(delta.Y, delta.X))
+							line.BackgroundColor3 = Theme.Accent
 							line.Visible = true
 						else
 							line.Visible = false
@@ -994,7 +1011,6 @@ local function UpdateESP()
 					end
 				end
 			end
-			-- esconde linhas extras
 			for i = lineIndex + 1, #data.skeletonLines do
 				if data.skeletonLines[i] then
 					data.skeletonLines[i].Visible = false
