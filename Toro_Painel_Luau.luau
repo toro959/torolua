@@ -472,12 +472,10 @@ local Combat = MakePage("Combat")
 local Visuals = MakePage("Visuals")
 local PlayerPage = MakePage("Player")
 local ConfigPage = MakePage("Config")
-local Extra = MakePage("Extra")
 MakeTab("Combat", "⚔")
 MakeTab("Visuals", "◉")
 MakeTab("Player", "◆")
 MakeTab("Config", "⚙")
-MakeTab("Extra", "⏻")
 
 local function Section(parent, title)
 	local holder = New("Frame", {
@@ -1112,76 +1110,10 @@ LocalPlayer.CharacterAdded:Connect(function()
 	UpdateSpeed()
 end)
 
-local mainConn = RunService.RenderStepped:Connect(function()
+RunService.RenderStepped:Connect(function()
 	UpdateESP()
 	UpdateAim()
 	UpdateSpeed()
-end)
-
---==================================================
--- EXTRA / UNLOAD
---==================================================
-Section(Extra, "SCRIPT")
-
-local unloadBtn = New("TextButton", {
-	Size = UDim2.new(1, -5, 0, 48),
-	BackgroundColor3 = Theme.Card,
-	BorderSizePixel = 0,
-	Text = "Unload Panel",
-	TextColor3 = Theme.Red,
-	TextSize = 13,
-	Font = Enum.Font.GothamBold,
-	AutoButtonColor = false,
-	LayoutOrder = #Extra:GetChildren(),
-}, Extra)
-Corner(unloadBtn, 8)
-
-unloadBtn.MouseButton1Click:Connect(function()
-	Config.AimEnabled = false
-	Config.SpeedEnabled = false
-	Config.ESPBox = false
-	Config.ESPHealth = false
-	Config.ESPName = false
-	Config.ESPDistance = false
-	Config.ESPTracer = false
-	Config.ESPHeadDot = false
-	Config.ESPSkeleton = false
-
-	if mainConn then
-		mainConn:Disconnect()
-		mainConn = nil
-	end
-
-	if ESPObjects then
-		for _, data in pairs(ESPObjects) do
-			if data.root and data.root.Parent then
-				data.root:Destroy()
-			end
-			if data.skeletonLines then
-				for _, line in pairs(data.skeletonLines) do
-					if line and line.Parent then
-						line:Destroy()
-					end
-				end
-			end
-		end
-		table.clear(ESPObjects)
-	end
-
-	if ESPFolder and ESPFolder.Parent then
-		ESPFolder:Destroy()
-	end
-
-	if Gui and Gui.Parent then
-		Gui:Destroy()
-	end
-
-	local login = PlayerGui:FindFirstChild("ToroKeyLogin")
-	if login then
-		login:Destroy()
-	end
-
-	print("[TORO] Panel unloaded.")
 end)
 
 print("[TORO] Logado via KeyAuth — painel liberado.")
